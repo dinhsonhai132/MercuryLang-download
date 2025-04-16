@@ -33,41 +33,62 @@ bool moveToCDrive(const std::string& extractRoot) {
     std::string cmd = "move \"" + from + "\" \"" + to + "\"";
     return runCommand(cmd);
 }
-
 bool addToPath(const std::string& path) {
-    // Open the system environment variable key for PATH
     HKEY hKey;
-    LONG openRes = RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment", 0, KEY_WRITE, &hKey);
+    LONG openRes = RegOpenKeyExA(
+        HKEY_CURRENT_USER,
+        "Environment",
+        0,
+        KEY_READ | KEY_WRITE,
+        &hKey
+    );
     if (openRes != ERROR_SUCCESS) {
-        std::cerr << "Error opening registry key for PATH!" << std::endl;
+        std::cerr << "Error opening registry key for user PATH!" << std::endl;
         return false;
     }
 
-    // Retrieve the current PATH variable from the registry
-    char currentPath[MAX_PATH];
-    DWORD size = sizeof(currentPath);
-    LONG getRes = RegQueryValueExA(hKey, "Path", NULL, NULL, (LPBYTE)currentPath, &size);
-    if (getRes != ERROR_SUCCESS) {
-        std::cerr << "Error retrieving current PATH from registry!" << std::endl;
-        RegCloseKey(hKey);
-        return false;
+    DWORD size = 0;
+    RegQueryValueExA(hKey, "Path", NULL, NULL, NULL, &size);
+    std::string newPath;
+    if (size > 0) {
+        std::vector<char> buffer(size);
+        RegQueryValueExA(hKey, "Path", NULL, NULL, (LPBYTE)buffer.data(), &size);
+        newPath = std::string(buffer.data());
+        if (newPath.find(path) == std::string::npos) {
+            newPath += ";" + path;
+        }
+    } else {
+        newPath = path;
     }
 
-    // Append the new path to the current PATH
-    std::string newPath = std::string(currentPath) + ";" + path;
-
-    // Update the PATH environment variable in the registry
-    LONG setRes = RegSetValueExA(hKey, "Path", 0, REG_EXPAND_SZ, (const BYTE*)newPath.c_str(), (newPath.length() + 1) * sizeof(char));
-    if (setRes != ERROR_SUCCESS) {
-        std::cerr << "Error setting new PATH in registry!" << std::endl;
-        RegCloseKey(hKey);
-        return false;
-    }
-
-    // Close the registry key
+    LONG setRes = RegSetValueExA(
+        hKey,
+        "Path",
+        0,
+        REG_EXPAND_SZ,
+        (const BYTE*)newPath.c_str(),
+        static_cast<DWORD>(newPath.size() + 1)
+    );
     RegCloseKey(hKey);
+
+    if (setRes != ERROR_SUCCESS) {
+        std::cerr << "Error setting new user PATH in registry!" << std::endl;
+        return false;
+    }
+
+    SendMessageTimeoutA(
+        HWND_BROADCAST,
+        WM_SETTINGCHANGE,
+        0,
+        (LPARAM)"Environment",
+        SMTO_ABORTIFHUNG,
+        5000,
+        nullptr
+    );
+
     return true;
 }
+
 
 int main() {
     std::string repoUrl = "https://github.com/dinhsonhai132/MercuryLang/archive/refs/heads/main.zip";
@@ -96,7 +117,6 @@ int main() {
 
     std::cout << "MercuryLang has been successfully downloaded and extracted to C:\\MercuryLang\n";
 
-    // Add C:\MercuryLang\v2.0.1\bin to PATH
     std::string binPath = "C:\\MercuryLang\\v2.0.1\\bin";
     if (!addToPath(binPath)) {
         std::cerr << "Error adding MercuryLang bin directory to PATH!\n";
