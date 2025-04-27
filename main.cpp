@@ -118,7 +118,7 @@ int main() {
 
     std::cout << "MercuryLang has been successfully downloaded and extracted to C:\\MercuryLang\n";
 
-    std::string binPath = "C:\\MercuryLang\\v2.1.1\\bin";
+    std::string binPath = "C:\\MercuryLang\\Bin";
     if (!addToPath(binPath)) {
         std::cerr << "Error adding MercuryLang bin directory to PATH!\n";
         return 1;
