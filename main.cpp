@@ -96,9 +96,6 @@ int main() {
     std::string downloadsPath = getDownloadsPath();
     std::string zipPath = downloadsPath + "\\MercuryLang-main.zip";
     std::string extractTemp = downloadsPath + "\\MercuryTemp";
-
-    std::cout << "== MercuryLang v2.0.1 ==\n\n";
-
     system(("mkdir \"" + extractTemp + "\" >nul 2>nul").c_str());
 
     if (!downloadZip(repoUrl, zipPath)) {
@@ -118,7 +115,7 @@ int main() {
 
     std::cout << "MercuryLang has been successfully downloaded and extracted to C:\\MercuryLang\n";
 
-    std::string binPath = "C:\\MercuryLang\\Bin";
+    std::string binPath = "C:\\MercuryLang\\Source\\Bin";
     if (!addToPath(binPath)) {
         std::cerr << "Error adding MercuryLang bin directory to PATH!\n";
         return 1;
